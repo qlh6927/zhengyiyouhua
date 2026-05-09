@@ -471,14 +471,23 @@
             showAdmin();
         }
 
-        // ===== Login =====
+        // ===== Login (直接调服务器 API，不走 adapter) =====
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const pwd = document.getElementById('loginPassword').value;
-            if (await zyStore.adminLogin(pwd)) {
-                showAdmin();
-            } else {
+            try {
+                const apiBase = CONFIG.API_BASE_URL || window.location.origin;
+                const resp = await fetch(apiBase + '/api/admin/login?password=' + encodeURIComponent(pwd));
+                const data = await resp.json();
+                if (data.ok) {
+                    sessionStorage.setItem('zy_admin', '1');
+                    showAdmin();
+                } else {
+                    document.getElementById('loginError').style.display = 'block';
+                }
+            } catch(err) {
                 document.getElementById('loginError').style.display = 'block';
+                document.getElementById('loginError').textContent = '连接服务器失败';
             }
         });
 
