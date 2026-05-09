@@ -618,9 +618,11 @@
         });
 
         // ===== Init =====
-        renderFilterBar();
-        renderArticles();
-        renderVideos();
+        (async () => {
+            await renderFilterBar();
+            await renderArticles();
+            await renderVideos();
+        })();
     </script>
 </body>
 </html>
