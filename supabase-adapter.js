@@ -25,7 +25,10 @@ const SupabaseAdapter = (() => {
 
     async function _fetch(path, options) {
         const url = _baseURL() + path;
-        const resp = await fetch(url, options);
+        // 合并默认 headers（GET 请求也需要 apikey）
+        const mergedOptions = Object.assign({}, options || {});
+        mergedOptions.headers = Object.assign({}, _headers(), mergedOptions.headers || {});
+        const resp = await fetch(url, mergedOptions);
         if (!resp.ok) {
             const text = await resp.text();
             throw new Error('Supabase API error: ' + resp.status + ' ' + text);
