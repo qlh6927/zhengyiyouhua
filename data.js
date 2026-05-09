@@ -132,8 +132,16 @@ const ZYData = (() => {
         return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
     }
 
+    async function _sha256(str) {
+        const buf = new TextEncoder().encode(str);
+        const hash = await crypto.subtle.digest('SHA-256', buf);
+        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     // ===== 公开 API =====
     return {
+        _sha256,
+
         // 获取所有数据
         getAll() {
             return _load();
@@ -247,10 +255,11 @@ const ZYData = (() => {
         },
 
         // ===== 管理员认证 =====
-        adminLogin(password) {
+        async adminLogin(password) {
+            const hashed = await ZYData._sha256(password);
             const stored = localStorage.getItem(ADMIN_KEY);
-            const correct = stored || 'zhengyi2026';
-            if (password === correct) {
+            const correct = stored || '4a246ecc3d477378bb5ca04032a7a9fed4c07c1bd61ac63362ee03d23172abaf';
+            if (hashed === correct) {
                 sessionStorage.setItem('zy_admin', '1');
                 return true;
             }
@@ -265,8 +274,9 @@ const ZYData = (() => {
             sessionStorage.removeItem('zy_admin');
         },
 
-        changeAdminPassword(newPwd) {
-            localStorage.setItem(ADMIN_KEY, newPwd);
+        async changeAdminPassword(newPwd) {
+            const hashed = await ZYData._sha256(newPwd);
+            localStorage.setItem(ADMIN_KEY, hashed);
         },
 
         // 获取所有文章（含未发布，管理后台用）
