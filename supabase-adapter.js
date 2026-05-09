@@ -16,6 +16,13 @@ const SupabaseAdapter = (() => {
         return CONFIG.SUPABASE_URL.replace(/\/+$/, '') + '/rest/v1';
     }
 
+    // SHA-256 哈希（用于密码加密比对）
+    async function _sha256(str) {
+        const buf = new TextEncoder().encode(str);
+        const hash = await crypto.subtle.digest('SHA-256', buf);
+        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
     async function _fetch(path, options) {
         const url = _baseURL() + path;
         const resp = await fetch(url, options);
@@ -256,8 +263,9 @@ const SupabaseAdapter = (() => {
 
         // ===== 管理员 =====
         async adminLogin(password) {
+            const hashed = await _sha256(password);
             const data = await _fetch('/admin_config?key=eq.password');
-            if (data.length > 0 && data[0].value === password) {
+            if (data.length > 0 && data[0].value === hashed) {
                 sessionStorage.setItem('zy_admin', '1');
                 return true;
             }
@@ -273,10 +281,11 @@ const SupabaseAdapter = (() => {
         },
 
         async changeAdminPassword(newPwd) {
+            const hashed = await _sha256(newPwd);
             await _fetch('/admin_config?key=eq.password', {
                 method: 'PATCH',
                 headers: _headers(),
-                body: JSON.stringify({ value: newPwd })
+                body: JSON.stringify({ value: hashed })
             });
         }
     };
