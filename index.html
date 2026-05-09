@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>郑医有话 — 新生儿科医生</title>
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            --color-bg: #FFFFFF;
+            --color-text: #1A1A1A;
+            --color-muted: #6B7280;
+            --color-gold: #C8A45C;
+            --color-gold-light: #E8D5A3;
+            --color-card-bg: #F7F7F5;
+            --color-border: #E5E5E3;
+            --font-main: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            --max-width: 1100px;
+            --section-gap: 100px;
+            --transition: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ===== Reset ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; font-size: 16px; }
+        body { font-family: var(--font-main); background: var(--color-bg); color: var(--color-text); line-height: 1.7; -webkit-font-smoothing: antialiased; }
+        img { max-width: 100%; display: block; }
+        a { text-decoration: none; color: inherit; }
+        .container { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; }
+
+        /* ===== Fade-in ===== */
+        .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.6s var(--transition), transform 0.6s var(--transition); }
+        .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+        /* ===== Navigation ===== */
+        .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(255,255,255,0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid transparent; transition: border-color 0.3s, box-shadow 0.3s; }
+        .nav.scrolled { border-bottom-color: var(--color-border); box-shadow: 0 1px 8px rgba(0,0,0,0.04); }
+        .nav-inner { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; display: flex; justify-content: space-between; align-items: center; height: 60px; }
+        .nav-logo { font-size: 1.125rem; font-weight: 700; letter-spacing: 0.02em; }
+        .nav-logo span { color: var(--color-gold); }
+        .nav-links { display: flex; gap: 32px; list-style: none; }
+        .nav-links a { font-size: 0.875rem; color: var(--color-muted); letter-spacing: 0.02em; transition: color 0.2s; position: relative; }
+        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 1.5px; background: var(--color-gold); transition: width 0.3s var(--transition); }
+        .nav-links a:hover { color: var(--color-text); }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-toggle { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+        .nav-toggle span { display: block; width: 22px; height: 1.5px; background: var(--color-text); transition: all 0.3s; }
+
+        /* ===== Search Button & Modal ===== */
+        .nav-actions { display: flex; align-items: center; gap: 16px; }
+        .search-btn { background: none; border: none; cursor: pointer; padding: 4px; display: flex; align-items: center; color: var(--color-muted); transition: color 0.2s; }
+        .search-btn:hover { color: var(--color-gold); }
+        .search-btn svg { width: 20px; height: 20px; }
+        .admin-link { font-size: 0.8125rem; color: var(--color-muted); transition: color 0.2s; }
+        .admin-link:hover { color: var(--color-gold); }
+
+        .search-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+        .search-overlay.active { display: flex; justify-content: center; align-items: flex-start; padding-top: 15vh; }
+        .search-modal { background: var(--color-bg); border-radius: 12px; width: 90%; max-width: 600px; padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.15); position: relative; }
+        .search-input-wrap { display: flex; align-items: center; gap: 12px; border-bottom: 2px solid var(--color-border); padding-bottom: 12px; margin-bottom: 24px; }
+        .search-input-wrap svg { width: 22px; height: 22px; stroke: var(--color-gold); flex-shrink: 0; }
+        .search-input { flex: 1; border: none; outline: none; font-size: 1.125rem; font-family: var(--font-main); color: var(--color-text); background: transparent; }
+        .search-input::placeholder { color: var(--color-border); }
+        .search-close { position: absolute; top: 16px; right: 20px; background: none; border: none; cursor: pointer; color: var(--color-muted); font-size: 1.25rem; }
+        .search-results { max-height: 400px; overflow-y: auto; }
+        .search-results-group { margin-bottom: 20px; }
+        .search-results-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--color-gold); margin-bottom: 10px; }
+        .search-result-item { display: block; padding: 12px 16px; border-radius: 8px; margin-bottom: 4px; transition: background 0.2s; cursor: pointer; }
+        .search-result-item:hover { background: var(--color-card-bg); }
+        .search-result-item .sr-title { font-size: 0.9375rem; font-weight: 500; margin-bottom: 2px; }
+        .search-result-item .sr-desc { font-size: 0.8125rem; color: var(--color-muted); }
+        .search-empty { text-align: center; color: var(--color-muted); font-size: 0.875rem; padding: 24px 0; }
+        .search-hint { text-align: center; color: var(--color-muted); font-size: 0.8125rem; padding: 16px 0; }
+
+        /* ===== Hero ===== */
+        .hero { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 120px 24px 80px; position: relative; overflow: hidden; }
+        .hero::after { content: ''; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--color-gold), transparent); }
+        .hero-greeting { font-size: 0.875rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-gold); margin-bottom: 24px; }
+        .hero-title { font-size: 3.5rem; font-weight: 700; line-height: 1.2; letter-spacing: 0.04em; margin-bottom: 20px; }
+        .hero-subtitle { font-size: 1.125rem; color: var(--color-muted); font-weight: 400; letter-spacing: 0.08em; margin-bottom: 48px; }
+        .hero-cta { display: inline-block; padding: 14px 40px; border: 1px solid var(--color-gold); color: var(--color-gold); font-size: 0.875rem; font-weight: 500; letter-spacing: 0.1em; transition: all 0.3s var(--transition); background: transparent; cursor: pointer; }
+        .hero-cta:hover { background: var(--color-gold); color: var(--color-bg); transform: translateY(-1px); }
+        .hero-scroll-hint { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--color-muted); font-size: 0.75rem; letter-spacing: 0.1em; animation: scrollHint 2s ease-in-out infinite; }
+        .hero-scroll-hint svg { width: 16px; height: 16px; stroke: var(--color-muted); }
+        @keyframes scrollHint { 0%,100%{opacity:0.4;transform:translate(-50%,0)} 50%{opacity:1;transform:translate(-50%,6px)} }
+
+        /* ===== Section ===== */
+        .section { padding: var(--section-gap) 0; }
+        .section-label { font-size: 0.75rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-gold); margin-bottom: 12px; }
+        .section-title { font-size: 2rem; font-weight: 600; line-height: 1.3; margin-bottom: 48px; }
+        .section-divider { width: 40px; height: 1px; background: var(--color-gold); margin-bottom: 48px; }
+
+        /* ===== About ===== */
+        .about-grid { display: grid; grid-template-columns: 280px 1fr; gap: 64px; align-items: start; }
+        .about-avatar { width: 240px; height: 240px; border-radius: 50%; background: var(--color-card-bg); border: 1px solid var(--color-border); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .about-avatar::before { content: ''; position: absolute; inset: -2px; border-radius: 50%; background: linear-gradient(135deg, var(--color-gold), var(--color-gold-light), var(--color-gold)); z-index: 0; padding: 2px; -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+        .avatar-placeholder { font-size: 4rem; color: var(--color-gold); z-index: 1; line-height: 1; }
+        .about-info { padding-top: 16px; }
+        .about-name { font-size: 1.5rem; font-weight: 600; margin-bottom: 4px; }
+        .about-role { font-size: 1rem; color: var(--color-gold); font-weight: 500; margin-bottom: 24px; }
+        .about-bio { font-size: 1rem; color: var(--color-muted); line-height: 1.9; margin-bottom: 32px; max-width: 560px; }
+        .about-tags { display: flex; flex-wrap: wrap; gap: 10px; }
+        .tag { display: inline-block; padding: 6px 16px; background: var(--color-card-bg); border: 1px solid var(--color-border); border-radius: 20px; font-size: 0.8125rem; font-weight: 500; letter-spacing: 0.02em; transition: all 0.2s; }
+        .tag:hover { border-color: var(--color-gold); color: var(--color-gold); }
+
+        /* ===== Articles ===== */
+        .articles-bg { background: var(--color-card-bg); }
+        .filter-bar { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 32px; }
+        .filter-btn { padding: 8px 20px; border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-bg); font-size: 0.8125rem; font-weight: 500; color: var(--color-muted); cursor: pointer; transition: all 0.2s; font-family: var(--font-main); }
+        .filter-btn:hover { border-color: var(--color-gold); color: var(--color-gold); }
+        .filter-btn.active { background: var(--color-gold); color: var(--color-bg); border-color: var(--color-gold); }
+        .articles-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .article-card { background: var(--color-bg); border-radius: 8px; padding: 32px 28px; border: 1px solid var(--color-border); transition: all 0.3s var(--transition); cursor: pointer; position: relative; overflow: hidden; }
+        .article-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--color-gold), var(--color-gold-light)); transform: scaleX(0); transform-origin: left; transition: transform 0.3s var(--transition); }
+        .article-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(200,164,92,0.1); border-color: var(--color-gold-light); }
+        .article-card:hover::before { transform: scaleX(1); }
+        .article-number { font-size: 0.75rem; font-weight: 600; color: var(--color-gold); letter-spacing: 0.05em; margin-bottom: 16px; }
+        .article-title { font-size: 1.125rem; font-weight: 600; line-height: 1.5; margin-bottom: 12px; }
+        .article-desc { font-size: 0.875rem; color: var(--color-muted); line-height: 1.7; margin-bottom: 16px; }
+        .article-card-footer { display: flex; justify-content: space-between; align-items: center; }
+        .article-meta { font-size: 0.75rem; color: var(--color-muted); display: flex; align-items: center; gap: 8px; }
+        .article-meta svg { width: 14px; height: 14px; stroke: var(--color-gold); }
+        .article-category-badge { font-size: 0.6875rem; padding: 2px 10px; border-radius: 10px; background: rgba(200,164,92,0.1); color: var(--color-gold); font-weight: 500; }
+        .no-results { grid-column: 1 / -1; text-align: center; padding: 48px 0; color: var(--color-muted); font-size: 0.9375rem; }
+
+        /* ===== Videos ===== */
+        .videos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+        .video-card { background: var(--color-card-bg); border-radius: 8px; border: 1px solid var(--color-border); overflow: hidden; transition: all 0.3s var(--transition); cursor: pointer; }
+        .video-card:hover { transform: translateY(-4px); box-shadow: 0 12px 32px rgba(200,164,92,0.1); border-color: var(--color-gold-light); }
+        .video-thumb { width: 100%; aspect-ratio: 16/9; background: linear-gradient(135deg, #f5f0e8, #ede6d8); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .video-thumb iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+        .video-play-icon { width: 56px; height: 56px; border-radius: 50%; background: rgba(200,164,92,0.9); display: flex; align-items: center; justify-content: center; transition: transform 0.3s var(--transition); }
+        .video-card:hover .video-play-icon { transform: scale(1.1); }
+        .video-play-icon svg { width: 24px; height: 24px; fill: #fff; stroke: none; margin-left: 3px; }
+        .video-info { padding: 20px 24px; }
+        .video-title { font-size: 1rem; font-weight: 600; margin-bottom: 6px; }
+        .video-desc { font-size: 0.8125rem; color: var(--color-muted); margin-bottom: 12px; }
+        .video-meta-row { display: flex; justify-content: space-between; align-items: center; }
+        .video-date { font-size: 0.75rem; color: var(--color-muted); }
+
+        /* ===== Load More Button ===== */
+        .load-more-wrap { text-align: center; margin-top: 40px; }
+        .load-more-btn { display: inline-block; padding: 12px 40px; border: 1px solid var(--color-gold); border-radius: 6px; background: transparent; color: var(--color-gold); font-size: 0.875rem; font-weight: 500; letter-spacing: 0.05em; font-family: var(--font-main); cursor: pointer; transition: all 0.3s var(--transition); }
+        .load-more-btn:hover { background: var(--color-gold); color: var(--color-bg); transform: translateY(-1px); }
+        .load-more-btn::after { content: ''; display: inline-block; width: 0; }
+        .load-count { display: block; margin-top: 10px; font-size: 0.75rem; color: var(--color-muted); }
+        .no-more { font-size: 0.8125rem; color: var(--color-muted); text-align: center; margin-top: 24px; }
+
+        /* ===== Contact ===== */
+        .contact-inner { text-align: center; max-width: 500px; margin: 0 auto; }
+        .contact-desc { font-size: 1rem; color: var(--color-muted); line-height: 1.8; margin-bottom: 40px; }
+        .qrcode-box { width: 200px; height: 200px; margin: 0 auto 24px; border: 1px solid var(--color-border); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--color-card-bg); transition: border-color 0.3s; }
+        .qrcode-box:hover { border-color: var(--color-gold); }
+        .qrcode-box svg { width: 80px; height: 80px; stroke: var(--color-gold); margin-bottom: 8px; }
+        .qrcode-box span { font-size: 0.75rem; color: var(--color-muted); }
+        .contact-account { font-size: 1.25rem; font-weight: 600; margin-bottom: 8px; }
+        .contact-hint { font-size: 0.875rem; color: var(--color-gold); font-weight: 500; }
+
+        /* ===== Footer ===== */
+        .footer { padding: 40px 0; border-top: 1px solid var(--color-border); text-align: center; }
+        .footer-text { font-size: 0.8125rem; color: var(--color-muted); letter-spacing: 0.02em; }
+        .footer-text span { color: var(--color-gold); }
+
+        /* ===== Responsive ===== */
+        @media (max-width: 1024px) { :root{--section-gap:80px;} .articles-grid,.videos-grid{grid-template-columns:repeat(2,1fr);} }
+        @media (max-width: 768px) {
+            .nav-links { display: none; position: absolute; top: 60px; left: 0; right: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(12px); flex-direction: column; padding: 24px; gap: 20px; border-bottom: 1px solid var(--color-border); }
+            .nav-links.open { display: flex; }
+            .nav-toggle { display: flex; }
+            .hero-title { font-size: 2.5rem; }
+            .hero-subtitle { font-size: 1rem; letter-spacing: 0.04em; }
+            .about-grid { grid-template-columns: 1fr; gap: 40px; text-align: center; }
+            .about-avatar { margin: 0 auto; }
+            .about-bio { max-width: 100%; }
+            .about-tags { justify-content: center; }
+            .articles-grid,.videos-grid { grid-template-columns: 1fr; }
+            .section-title { font-size: 1.5rem; }
+        }
+        @media (max-width: 480px) {
+            .hero { padding: 100px 20px 60px; }
+            .hero-title { font-size: 2rem; }
+            .about-avatar { width: 180px; height: 180px; }
+            .avatar-placeholder { font-size: 3rem; }
+            .filter-bar { gap: 6px; }
+            .filter-btn { padding: 6px 14px; font-size: 0.75rem; }
+            .load-more-btn { padding: 10px 24px; font-size: 0.8125rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation -->
+    <nav class="nav" id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">郑医<span>有话</span></a>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#about">关于我</a></li>
+                <li><a href="#articles">科普精选</a></li>
+                <li><a href="#videos">科普视频</a></li>
+                <li><a href="#contact">联系方式</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="search-btn" id="searchBtn" aria-label="搜索">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+                <a href="admin.html" class="admin-link" title="管理后台">编辑</a>
+                <button class="nav-toggle" id="navToggle" aria-label="菜单"><span></span><span></span><span></span></button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Search Overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-modal">
+            <button class="search-close" id="searchClose">&times;</button>
+            <div class="search-input-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" class="search-input" id="searchInput" placeholder="搜索文章和视频..." autofocus>
+            </div>
+            <div class="search-results" id="searchResults">
+                <p class="search-hint">输入关键词开始搜索</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="hero" id="hero">
+        <p class="hero-greeting fade-in">NEONATOLOGIST</p>
+        <h1 class="hero-title fade-in">郑医有话</h1>
+        <p class="hero-subtitle fade-in">新生儿科医生 ｜ 用专业守护每一个新生命</p>
+        <a href="#about" class="hero-cta fade-in">了解更多</a>
+        <div class="hero-scroll-hint">
+            <span>SCROLL</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="section" id="about">
+        <div class="container">
+            <div class="fade-in">
+                <p class="section-label">About</p>
+                <div class="section-divider"></div>
+            </div>
+            <div class="about-grid">
+                <div class="about-avatar fade-in">
+                    <div class="avatar-placeholder">
+                        <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    </div>
+                </div>
+                <div class="about-info fade-in">
+                    <h2 class="about-name">郑医有话</h2>
+                    <p class="about-role">新生儿科医生</p>
+                    <p class="about-bio">专注于新生儿疾病的诊断与治疗，致力于用通俗易懂的语言，帮助新手父母了解新生儿护理知识，消除育儿焦虑。从黄疸管理到早产儿照护，从母乳喂养到睡眠引导——在这里，用专业为您解答每一个疑问。</p>
+                    <div class="about-tags">
+                        <span class="tag">新生儿护理</span>
+                        <span class="tag">早产儿管理</span>
+                        <span class="tag">黄疸诊疗</span>
+                        <span class="tag">喂养指导</span>
+                        <span class="tag">育儿科普</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Articles Section -->
+    <section class="section articles-bg" id="articles">
+        <div class="container">
+            <div class="fade-in">
+                <p class="section-label">Articles</p>
+                <h2 class="section-title">科普精选</h2>
+                <div class="section-divider"></div>
+            </div>
+            <div class="filter-bar fade-in" id="filterBar"></div>
+            <div class="articles-grid" id="articlesGrid"></div>
+            <div class="load-more-wrap" id="articlesLoadMore"></div>
+        </div>
+    </section>
+
+    <!-- Videos Section -->
+    <section class="section" id="videos">
+        <div class="container">
+            <div class="fade-in">
+                <p class="section-label">Videos</p>
+                <h2 class="section-title">科普视频</h2>
+                <div class="section-divider"></div>
+            </div>
+            <div class="videos-grid" id="videosGrid"></div>
+            <div class="load-more-wrap" id="videosLoadMore"></div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section class="section" id="contact">
+        <div class="container">
+            <div class="contact-inner fade-in">
+                <p class="section-label">Contact</p>
+                <h2 class="section-title">关注公众号</h2>
+                <div class="section-divider" style="margin: 0 auto 48px;"></div>
+                <p class="contact-desc">关注微信公众号「郑医有话」，获取更多新生儿护理知识，第一时间阅读最新科普文章。</p>
+                <div class="qrcode-box">
+                    <svg viewBox="0 0 24 24" fill="none" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="21" y1="14" x2="21" y2="14.01"/><line x1="21" y1="21" x2="21" y2="21.01"/><line x1="17" y1="21" x2="17" y2="21.01"/></svg>
+                    <span>二维码占位</span>
+                </div>
+                <p class="contact-account">微信公众号：郑医有话</p>
+                <p class="contact-hint">微信搜索「郑医有话」即可关注</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p class="footer-text">&copy; 2026 <span>郑医有话</span> ｜ 用专业守护每一个新生命</p>
+        </div>
+    </footer>
+
+    <script src="config.js"></script>
+    <script src="data.js"></script>
+    <script src="video-store.js"></script>
+    <script src="supabase-adapter.js"></script>
+    <script src="zy-store.js"></script>
+    <script>
+        // ===== Dynamic Rendering =====
+        const PAGE_SIZE = CONFIG.PAGE_SIZE || 6;
+        let currentCategory = '全部';
+        let articlePage = 1;
+        let videoPage = 1;
+
+        async function renderFilterBar() {
+            const bar = document.getElementById('filterBar');
+            const cats = await zyStore.getCategories();
+            bar.innerHTML = cats.map(c =>
+                `<button class="filter-btn${c === currentCategory ? ' active' : ''}" data-cat="${c}">${c}</button>`
+            ).join('');
+            bar.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentCategory = btn.dataset.cat;
+                    articlePage = 1;
+                    videoPage = 1;
+                    renderArticles();
+                    renderFilterBar();
+                });
+            });
+        }
+
+        async function renderArticles() {
+            const grid = document.getElementById('articlesGrid');
+            const loadMoreWrap = document.getElementById('articlesLoadMore');
+            const articles = await zyStore.getArticles({ category: currentCategory });
+
+            if (articles.length === 0) {
+                grid.innerHTML = '<p class="no-results">暂无相关文章</p>';
+                loadMoreWrap.innerHTML = '';
+                return;
+            }
+
+            const visible = articles.slice(0, articlePage * PAGE_SIZE);
+            grid.innerHTML = visible.map((a, i) => `
+                <div class="article-card fade-in" data-id="${a.id}" onclick="location.href='article.html?id=${a.id}'">
+                    <p class="article-number">${String(i + 1).padStart(2, '0')}</p>
+                    <h3 class="article-title">${a.title}</h3>
+                    <p class="article-desc">${a.desc}</p>
+                    <div class="article-card-footer">
+                        <div class="article-meta">
+                            <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                            <span>${a.date}</span>
+                        </div>
+                        <span class="article-category-badge">${a.category}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Load more button or count
+            if (visible.length < articles.length) {
+                const remaining = articles.length - visible.length;
+                loadMoreWrap.innerHTML = `
+                    <button class="load-more-btn" onclick="loadMoreArticles()">
+                        加载更多
+                    </button>
+                    <span class="load-count">已显示 ${visible.length} / ${articles.length} 篇，还有 ${remaining} 篇</span>
+                `;
+            } else if (articles.length > PAGE_SIZE) {
+                loadMoreWrap.innerHTML = `<span class="no-more">—— 已展示全部 ${articles.length} 篇文章 ——</span>`;
+            } else {
+                loadMoreWrap.innerHTML = '';
+            }
+
+            grid.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+        }
+
+        function loadMoreArticles() {
+            articlePage++;
+            renderArticles();
+            // Scroll to the first new card
+            const cards = document.querySelectorAll('#articlesGrid .article-card');
+            const firstNew = cards[(articlePage - 1) * PAGE_SIZE];
+            if (firstNew) {
+                const top = firstNew.getBoundingClientRect().top + window.scrollY - 100;
+                window.scrollTo({ top, behavior: 'smooth' });
+            }
+        }
+
+        async function renderVideos() {
+            const grid = document.getElementById('videosGrid');
+            const loadMoreWrap = document.getElementById('videosLoadMore');
+            const videos = await zyStore.getVideos();
+
+            if (videos.length === 0) {
+                grid.innerHTML = '<p class="no-results">暂无科普视频</p>';
+                loadMoreWrap.innerHTML = '';
+                return;
+            }
+
+            const visible = videos.slice(0, videoPage * PAGE_SIZE);
+            const htmlParts = [];
+            for (const v of visible) {
+                const hasEmbed = v.embedCode && v.embedCode.trim();
+                const hasUrl = v.url && v.url.trim();
+                const hasStorage = v.storageKey && v.storageKey.trim();
+
+                if (hasStorage) {
+                    const blobUrl = await zyStore.getVideoFileURL(v);
+                    if (blobUrl) {
+                        htmlParts.push(`
+                            <div class="video-card fade-in" style="cursor:default;">
+                                <div class="video-thumb" style="position:relative;">
+                                    <video controls preload="metadata" style="position:absolute;inset:0;width:100%;height:100%;display:block;background:#000;"><source src="${blobUrl}">您的浏览器不支持视频播放</video>
+                                </div>
+                                <div class="video-info">
+                                    <h3 class="video-title">${v.title}</h3>
+                                    <p class="video-desc">${v.desc}</p>
+                                    <div class="video-meta-row">
+                                        <span class="article-category-badge">${v.category}</span>
+                                        <span class="video-date">${v.date}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `);
+                        continue;
+                    }
+                }
+
+                if (hasEmbed) {
+                    htmlParts.push(`
+                        <div class="video-card fade-in" style="cursor:default;">
+                            <div class="video-thumb" style="position:relative;">
+                                ${v.embedCode}
+                            </div>
+                            <div class="video-info">
+                                <h3 class="video-title">${v.title}</h3>
+                                <p class="video-desc">${v.desc}</p>
+                                <div class="video-meta-row">
+                                    <span class="article-category-badge">${v.category}</span>
+                                    <span class="video-date">${v.date}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                } else {
+                    htmlParts.push(`
+                        <div class="video-card fade-in" onclick="openVideo('${v.url || ''}')">
+                            <div class="video-thumb">
+                                <div class="video-play-icon">
+                                    <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+                                </div>
+                            </div>
+                            <div class="video-info">
+                                <h3 class="video-title">${v.title}</h3>
+                                <p class="video-desc">${v.desc}</p>
+                                <div class="video-meta-row">
+                                    <span class="article-category-badge">${v.category}</span>
+                                    <span class="video-date">${v.date}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `);
+                }
+            }
+            grid.innerHTML = htmlParts.join('');
+
+            // Load more button or count
+            if (visible.length < videos.length) {
+                const remaining = videos.length - visible.length;
+                loadMoreWrap.innerHTML = `
+                    <button class="load-more-btn" onclick="loadMoreVideos()">
+                        加载更多
+                    </button>
+                    <span class="load-count">已显示 ${visible.length} / ${videos.length} 个，还有 ${remaining} 个</span>
+                `;
+            } else if (videos.length > PAGE_SIZE) {
+                loadMoreWrap.innerHTML = `<span class="no-more">—— 已展示全部 ${videos.length} 个视频 ——</span>`;
+            } else {
+                loadMoreWrap.innerHTML = '';
+            }
+
+            grid.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+        }
+
+        function loadMoreVideos() {
+            videoPage++;
+            renderVideos();
+            const cards = document.querySelectorAll('#videosGrid .video-card');
+            const firstNew = cards[(videoPage - 1) * PAGE_SIZE];
+            if (firstNew) {
+                const top = firstNew.getBoundingClientRect().top + window.scrollY - 100;
+                window.scrollTo({ top, behavior: 'smooth' });
+            }
+        }
+
+        function openVideo(url) {
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                alert('视频地址待配置，请在管理后台添加视频链接或嵌入代码');
+            }
+        }
+
+        // ===== Search =====
+        const searchOverlay = document.getElementById('searchOverlay');
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let searchDebounce = null;
+
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            searchOverlay.classList.add('active');
+            searchInput.value = '';
+            searchResults.innerHTML = '<p class="search-hint">输入关键词开始搜索</p>';
+            setTimeout(() => searchInput.focus(), 100);
+        });
+
+        document.getElementById('searchClose').addEventListener('click', closeSearch);
+        searchOverlay.addEventListener('click', (e) => { if (e.target === searchOverlay) closeSearch(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSearch(); });
+
+        function closeSearch() {
+            searchOverlay.classList.remove('active');
+            searchInput.value = '';
+        }
+
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(doSearch, 200);
+        });
+
+        async function doSearch() {
+            const kw = searchInput.value.trim();
+            if (!kw) {
+                searchResults.innerHTML = '<p class="search-hint">输入关键词开始搜索</p>';
+                return;
+            }
+            const result = await zyStore.search(kw);
+            if (result.articles.length === 0 && result.videos.length === 0) {
+                searchResults.innerHTML = '<p class="search-empty">未找到相关内容</p>';
+                return;
+            }
+            let html = '';
+            if (result.articles.length > 0) {
+                html += '<div class="search-results-group"><p class="search-results-label">文章</p>';
+                html += result.articles.map(a =>
+                    `<a class="search-result-item" href="article.html?id=${a.id}"><div class="sr-title">${highlightText(a.title, kw)}</div><div class="sr-desc">${highlightText(a.desc, kw)}</div></a>`
+                ).join('');
+                html += '</div>';
+            }
+            if (result.videos.length > 0) {
+                html += '<div class="search-results-group"><p class="search-results-label">视频</p>';
+                html += result.videos.map(v =>
+                    `<div class="search-result-item" onclick="openVideo('${v.url || ''}')"><div class="sr-title">${highlightText(v.title, kw)}</div><div class="sr-desc">${highlightText(v.desc, kw)}</div></div>`
+                ).join('');
+                html += '</div>';
+            }
+            searchResults.innerHTML = html;
+        }
+
+        function highlightText(text, kw) {
+            const re = new RegExp(`(${kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(re, '<strong style="color:var(--color-gold)">$1</strong>');
+        }
+
+        // ===== Scroll Fade-in =====
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const delay = entry.target.closest('.articles-grid, .videos-grid')
+                        ? Array.from(entry.target.parentElement.children).indexOf(entry.target) * 80
+                        : 0;
+                    setTimeout(() => entry.target.classList.add('visible'), delay);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+        document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+        // ===== Nav Scroll =====
+        const nav = document.getElementById('nav');
+        window.addEventListener('scroll', () => {
+            nav.classList.toggle('scrolled', window.scrollY > 20);
+        }, { passive: true });
+
+        // ===== Mobile Menu =====
+        const navToggle = document.getElementById('navToggle');
+        const navLinks = document.getElementById('navLinks');
+        navToggle.addEventListener('click', () => navLinks.classList.toggle('open'));
+        navLinks.querySelectorAll('a').forEach(l => l.addEventListener('click', () => navLinks.classList.remove('open')));
+
+        // ===== Smooth Scroll =====
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    const top = target.getBoundingClientRect().top + window.scrollY - 60;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                }
+            });
+        });
+
+        // ===== Init =====
+        renderFilterBar();
+        renderArticles();
+        renderVideos();
+    </script>
+</body>
+</html>

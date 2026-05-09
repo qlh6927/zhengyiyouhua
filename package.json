@@ -1,0 +1,8 @@
+{
+  "name": "zhengyiyouhua",
+  "version": "1.0.0",
+  "description": "郑医有话 — 新生儿科医生个人主页",
+  "scripts": {
+    "dev": "npx serve ."
+  }
+}

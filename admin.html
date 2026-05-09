@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理后台 — 郑医有话</title>
+    <style>
+        :root {
+            --color-bg: #FFFFFF;
+            --color-text: #1A1A1A;
+            --color-muted: #6B7280;
+            --color-gold: #C8A45C;
+            --color-gold-light: #E8D5A3;
+            --color-card-bg: #F7F7F5;
+            --color-border: #E5E5E3;
+            --color-danger: #DC2626;
+            --color-danger-bg: #FEF2F2;
+            --color-success: #059669;
+            --color-success-bg: #ECFDF5;
+            --font-main: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            --max-width: 960px;
+            --transition: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { font-size: 16px; }
+        body { font-family: var(--font-main); background: var(--color-card-bg); color: var(--color-text); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+        a { text-decoration: none; color: inherit; }
+        button { font-family: var(--font-main); cursor: pointer; }
+
+        /* Login */
+        .login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .login-box { background: var(--color-bg); border-radius: 12px; padding: 48px 40px; width: 100%; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+        .login-box h1 { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: 8px; }
+        .login-box h1 span { color: var(--color-gold); }
+        .login-box .login-sub { text-align: center; color: var(--color-muted); font-size: 0.875rem; margin-bottom: 32px; }
+        .login-field { margin-bottom: 20px; }
+        .login-field label { display: block; font-size: 0.8125rem; font-weight: 500; margin-bottom: 8px; color: var(--color-muted); }
+        .login-field input { width: 100%; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: 8px; font-size: 0.9375rem; font-family: var(--font-main); transition: border-color 0.2s; outline: none; }
+        .login-field input:focus { border-color: var(--color-gold); }
+        .login-btn { width: 100%; padding: 12px; background: var(--color-gold); color: #fff; border: none; border-radius: 8px; font-size: 0.9375rem; font-weight: 600; transition: opacity 0.2s; }
+        .login-btn:hover { opacity: 0.9; }
+        .login-error { color: var(--color-danger); font-size: 0.8125rem; text-align: center; margin-top: 12px; display: none; }
+        .login-hint { text-align: center; margin-top: 20px; font-size: 0.8125rem; color: var(--color-muted); }
+
+        /* Admin Layout */
+        .admin-page { display: none; }
+        .admin-header { background: var(--color-bg); border-bottom: 1px solid var(--color-border); padding: 0 24px; position: sticky; top: 0; z-index: 50; }
+        .admin-header-inner { max-width: var(--max-width); margin: 0 auto; display: flex; justify-content: space-between; align-items: center; height: 56px; }
+        .admin-title { font-size: 1rem; font-weight: 600; }
+        .admin-title span { color: var(--color-gold); }
+        .admin-actions { display: flex; gap: 12px; align-items: center; }
+        .admin-btn { padding: 6px 16px; border: 1px solid var(--color-border); border-radius: 6px; background: var(--color-bg); font-size: 0.8125rem; color: var(--color-muted); transition: all 0.2s; }
+        .admin-btn:hover { border-color: var(--color-gold); color: var(--color-gold); }
+        .admin-btn.primary { background: var(--color-gold); color: #fff; border-color: var(--color-gold); }
+        .admin-btn.primary:hover { opacity: 0.9; }
+        .admin-btn.danger { color: var(--color-danger); border-color: var(--color-danger); }
+        .admin-btn.danger:hover { background: var(--color-danger); color: #fff; }
+
+        .admin-body { max-width: var(--max-width); margin: 0 auto; padding: 24px; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--color-border); }
+        .tab { padding: 10px 24px; font-size: 0.875rem; font-weight: 500; color: var(--color-muted); border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.2s; }
+        .tab.active { color: var(--color-gold); border-bottom-color: var(--color-gold); }
+        .tab:hover { color: var(--color-text); }
+
+        /* Table */
+        .content-panel { display: none; }
+        .content-panel.active { display: block; }
+        .table-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .table-header h3 { font-size: 1.125rem; font-weight: 600; }
+        .table-wrap { background: var(--color-bg); border-radius: 8px; border: 1px solid var(--color-border); overflow: hidden; }
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th { padding: 12px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; color: var(--color-muted); text-transform: uppercase; letter-spacing: 0.05em; background: var(--color-card-bg); border-bottom: 1px solid var(--color-border); }
+        .data-table td { padding: 14px 16px; font-size: 0.875rem; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: rgba(200,164,92,0.03); }
+        .table-title { font-weight: 500; max-width: 300px; }
+        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.6875rem; font-weight: 500; }
+        .status-badge.published { background: var(--color-success-bg); color: var(--color-success); }
+        .status-badge.draft { background: var(--color-card-bg); color: var(--color-muted); }
+        .action-btns { display: flex; gap: 8px; }
+        .action-btn { padding: 4px 10px; border: 1px solid var(--color-border); border-radius: 4px; background: none; font-size: 0.75rem; color: var(--color-muted); transition: all 0.2s; }
+        .action-btn:hover { border-color: var(--color-gold); color: var(--color-gold); }
+        .action-btn.delete:hover { border-color: var(--color-danger); color: var(--color-danger); }
+        .empty-state { text-align: center; padding: 48px 0; color: var(--color-muted); font-size: 0.875rem; }
+
+        /* Editor Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
+        .modal-overlay.active { display: flex; justify-content: center; align-items: flex-start; padding-top: 5vh; overflow-y: auto; }
+        .modal { background: var(--color-bg); border-radius: 12px; width: 92%; max-width: 720px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.15); margin-bottom: 5vh; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 28px; border-bottom: 1px solid var(--color-border); position: sticky; top: 0; background: var(--color-bg); z-index: 10; border-radius: 12px 12px 0 0; }
+        .modal-header h3 { font-size: 1.0625rem; font-weight: 600; }
+        .modal-close { background: none; border: none; font-size: 1.5rem; color: var(--color-muted); cursor: pointer; padding: 4px; line-height: 1; }
+        .modal-close:hover { color: var(--color-text); }
+        .modal-body { padding: 24px 28px; }
+        .modal-footer { padding: 16px 28px; border-top: 1px solid var(--color-border); display: flex; justify-content: flex-end; gap: 12px; position: sticky; bottom: 0; background: var(--color-bg); border-radius: 0 0 12px 12px; }
+
+        /* Form */
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.8125rem; font-weight: 500; color: var(--color-muted); margin-bottom: 6px; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 0.9375rem; font-family: var(--font-main); transition: border-color 0.2s; outline: none; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--color-gold); }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-hint { font-size: 0.75rem; color: var(--color-muted); margin-top: 4px; }
+        .toggle-wrap { display: flex; align-items: center; gap: 10px; }
+        .toggle { position: relative; width: 44px; height: 24px; cursor: pointer; }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; inset: 0; background: var(--color-border); border-radius: 24px; transition: background 0.3s; }
+        .toggle-slider::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: transform 0.3s; }
+        .toggle input:checked + .toggle-slider { background: var(--color-gold); }
+        .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+        .toggle-label { font-size: 0.875rem; color: var(--color-muted); }
+
+        /* Rich text toolbar */
+        .rte-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border: 1px solid var(--color-border); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--color-card-bg); }
+        .rte-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: 4px; background: none; color: var(--color-muted); font-size: 0.8125rem; font-weight: 600; transition: all 0.2s; }
+        .rte-btn:hover { background: var(--color-bg); border-color: var(--color-border); color: var(--color-text); }
+        .rte-btn.active { background: var(--color-bg); border-color: var(--color-gold); color: var(--color-gold); }
+        .rte-content { min-height: 200px; padding: 16px; border: 1px solid var(--color-border); border-radius: 0 0 6px 6px; outline: none; font-size: 0.9375rem; line-height: 1.8; }
+        .rte-content:focus { border-color: var(--color-gold); }
+        .rte-content h2 { font-size: 1.25rem; margin: 16px 0 8px; }
+        .rte-content h3 { font-size: 1.125rem; margin: 12px 0 6px; }
+        .rte-content ul, .rte-content ol { padding-left: 24px; margin: 8px 0; }
+
+        /* Video Source Tabs */
+        .video-source-tabs { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 1px solid var(--color-border); }
+        .vst-btn { padding: 8px 16px; font-size: 0.8125rem; font-weight: 500; color: var(--color-muted); border: none; background: none; border-bottom: 2px solid transparent; transition: all 0.2s; cursor: pointer; }
+        .vst-btn.active { color: var(--color-gold); border-bottom-color: var(--color-gold); }
+        .vst-btn:hover { color: var(--color-text); }
+        .vs-panel { display: none; }
+        .vs-panel.active { display: block; }
+
+        /* Upload Zone */
+        .upload-zone { border: 2px dashed var(--color-border); border-radius: 10px; transition: all 0.3s; cursor: pointer; }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--color-gold); background: rgba(200,164,92,0.04); }
+        .upload-zone.drag-over { border-color: var(--color-gold); background: rgba(200,164,92,0.08); transform: scale(1.01); }
+        .upload-zone-inner { padding: 36px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .upload-text { font-size: 0.875rem; color: var(--color-muted); }
+        .upload-browse { color: var(--color-gold); font-weight: 500; cursor: pointer; }
+        .upload-browse:hover { text-decoration: underline; }
+        .upload-hint { font-size: 0.75rem; color: var(--color-border); }
+
+        /* Upload Progress */
+        .upload-progress { margin-top: 12px; width: 100%; }
+        .upload-progress-bar { height: 4px; background: var(--color-border); border-radius: 4px; overflow: hidden; }
+        .upload-progress-fill { height: 100%; background: var(--color-gold); border-radius: 4px; transition: width 0.3s; }
+        .upload-progress-text { font-size: 0.75rem; color: var(--color-muted); text-align: center; margin-top: 6px; }
+
+        /* Upload Preview */
+        .upload-preview { margin-top: 12px; padding: 12px 16px; background: var(--color-success-bg); border: 1px solid rgba(5,150,105,0.2); border-radius: 8px; }
+        .upload-preview-info { display: flex; align-items: center; gap: 10px; }
+        .upload-preview-info svg { flex-shrink: 0; }
+        .upload-preview-info #artUploadName,
+        .upload-preview-info #vidUploadName { font-size: 0.875rem; font-weight: 500; color: var(--color-text); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .upload-size { font-size: 0.75rem; color: var(--color-muted); flex-shrink: 0; }
+        .upload-remove { background: none; border: none; font-size: 1.25rem; color: var(--color-muted); cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0; }
+        .upload-remove:hover { color: var(--color-danger); }
+
+        /* Toast */
+        .toast { position: fixed; top: 20px; right: 20px; z-index: 999; padding: 12px 24px; border-radius: 8px; font-size: 0.875rem; font-weight: 500; box-shadow: 0 4px 12px rgba(0,0,0,0.1); transform: translateX(120%); transition: transform 0.3s var(--transition); }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: var(--color-success-bg); color: var(--color-success); border: 1px solid var(--color-success); }
+        .toast.error { background: var(--color-danger-bg); color: var(--color-danger); border: 1px solid var(--color-danger); }
+
+        @media (max-width: 768px) {
+            .data-table { font-size: 0.8125rem; }
+            .data-table th, .data-table td { padding: 10px 12px; }
+            .form-row { grid-template-columns: 1fr; }
+            .modal { width: 96%; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Login Page -->
+    <div class="login-page" id="loginPage">
+        <div class="login-box">
+            <h1>郑医<span>有话</span></h1>
+            <p class="login-sub">管理后台</p>
+            <form id="loginForm">
+                <div class="login-field">
+                    <label>管理密码</label>
+                    <input type="password" id="loginPassword" placeholder="请输入管理密码" autocomplete="current-password">
+                </div>
+                <button type="submit" class="login-btn">登录</button>
+                <p class="login-error" id="loginError">密码错误，请重试</p>
+            </form>
+            <p class="login-hint">默认密码：zhengyi2026</p>
+        </div>
+    </div>
+
+    <!-- Admin Page -->
+    <div class="admin-page" id="adminPage">
+        <header class="admin-header">
+            <div class="admin-header-inner">
+                <div class="admin-title">郑医<span>有话</span> · 管理后台</div>
+                <div class="admin-actions">
+                    <a href="index.html" class="admin-btn">查看网站</a>
+                    <button class="admin-btn" onclick="showPasswordModal()">修改密码</button>
+                    <button class="admin-btn" onclick="zyStore.adminLogout();location.reload()">退出</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="admin-body">
+            <div class="tabs">
+                <button class="tab active" data-tab="articles">文章管理</button>
+                <button class="tab" data-tab="videos">视频管理</button>
+                <button class="tab" data-tab="categories">分类管理</button>
+            </div>
+
+            <!-- Articles Panel -->
+            <div class="content-panel active" id="panel-articles">
+                <div class="table-header">
+                    <h3>文章列表</h3>
+                    <button class="admin-btn primary" onclick="openArticleEditor()">+ 新建文章</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>标题</th><th>分类</th><th>状态</th><th>日期</th><th>操作</th></tr></thead>
+                        <tbody id="articleTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Videos Panel -->
+            <div class="content-panel" id="panel-videos">
+                <div class="table-header">
+                    <h3>视频列表</h3>
+                    <button class="admin-btn primary" onclick="openVideoEditor()">+ 新建视频</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>标题</th><th>分类</th><th>状态</th><th>日期</th><th>操作</th></tr></thead>
+                        <tbody id="videoTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Categories Panel -->
+            <div class="content-panel" id="panel-categories">
+                <div class="table-header">
+                    <h3>分类管理</h3>
+                    <button class="admin-btn primary" onclick="addCategory()">+ 添加分类</button>
+                </div>
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead><tr><th>分类名称</th><th>文章数</th><th>操作</th></tr></thead>
+                        <tbody id="categoryTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Article Editor Modal -->
+    <div class="modal-overlay" id="articleModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="articleModalTitle">新建文章</h3>
+                <button class="modal-close" onclick="closeModal('articleModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="artId">
+                <div class="form-group">
+                    <label>文章标题 *</label>
+                    <input type="text" id="artTitle" placeholder="输入文章标题">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>分类</label>
+                        <select id="artCategory"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>发布日期</label>
+                        <input type="date" id="artDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>摘要</label>
+                    <textarea id="artDesc" rows="2" placeholder="一句话描述文章内容"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>关联视频</label>
+                    <div class="video-source-tabs">
+                        <button type="button" class="vst-btn active" data-target="art-upload-panel">上传视频</button>
+                        <button type="button" class="vst-btn" data-target="art-link-panel">视频链接</button>
+                        <button type="button" class="vst-btn" data-target="art-embed-panel">嵌入代码</button>
+                    </div>
+                    <!-- 上传视频 -->
+                    <div class="vs-panel active" id="art-upload-panel">
+                        <div class="upload-zone" id="artUploadZone">
+                            <div class="upload-zone-inner">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C8A45C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <p class="upload-text">拖拽视频文件到此处，或 <span class="upload-browse">点击选择</span></p>
+                                <p class="upload-hint">支持 MP4 / WebM / MOV，建议 100MB 以内</p>
+                            </div>
+                            <input type="file" id="artVideoFile" accept="video/*" hidden>
+                        </div>
+                        <div class="upload-preview" id="artUploadPreview" style="display:none;">
+                            <div class="upload-preview-info">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A45C" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                <span id="artUploadName">video.mp4</span>
+                                <span id="artUploadSize" class="upload-size"></span>
+                                <button type="button" class="upload-remove" id="artUploadRemove">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 视频链接 -->
+                    <div class="vs-panel" id="art-link-panel">
+                        <input type="text" id="artVideoUrl" placeholder="B站/YouTube/腾讯视频链接">
+                        <p class="form-hint">填写视频链接，系统自动识别并嵌入播放器</p>
+                    </div>
+                    <!-- 嵌入代码 -->
+                    <div class="vs-panel" id="art-embed-panel">
+                        <textarea id="artVideoEmbedCode" rows="3" placeholder='粘贴 iframe 嵌入代码，例如：<iframe src="..." allowfullscreen></iframe>'></textarea>
+                        <p class="form-hint">从B站/YouTube等平台复制「嵌入代码」粘贴</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>文章正文</label>
+                    <div class="rte-toolbar" id="rteToolbar">
+                        <button class="rte-btn" data-cmd="bold" title="粗体"><strong>B</strong></button>
+                        <button class="rte-btn" data-cmd="italic" title="斜体"><em>I</em></button>
+                        <button class="rte-btn" data-cmd="underline" title="下划线"><u>U</u></button>
+                        <button class="rte-btn" data-cmd="formatBlock" data-val="H2" title="标题2">H2</button>
+                        <button class="rte-btn" data-cmd="formatBlock" data-val="H3" title="标题3">H3</button>
+                        <button class="rte-btn" data-cmd="insertUnorderedList" title="无序列表">•</button>
+                        <button class="rte-btn" data-cmd="insertOrderedList" title="有序列表">1.</button>
+                        <button class="rte-btn" data-cmd="formatBlock" data-val="BLOCKQUOTE" title="引用">❝</button>
+                        <button class="rte-btn" data-cmd="removeFormat" title="清除格式">✕</button>
+                    </div>
+                    <div class="rte-content" id="artContent" contenteditable="true"></div>
+                </div>
+                <div class="form-group">
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" id="artPublished" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">发布状态</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn" onclick="closeModal('articleModal')">取消</button>
+                <button class="admin-btn primary" onclick="saveArticle()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Editor Modal -->
+    <div class="modal-overlay" id="videoModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="videoModalTitle">新建视频</h3>
+                <button class="modal-close" onclick="closeModal('videoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="vidId">
+                <div class="form-group">
+                    <label>视频标题 *</label>
+                    <input type="text" id="vidTitle" placeholder="输入视频标题">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>分类</label>
+                        <select id="vidCategory"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>发布日期</label>
+                        <input type="date" id="vidDate">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>视频描述</label>
+                    <textarea id="vidDesc" rows="2" placeholder="简短描述视频内容"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>视频来源</label>
+                    <div class="video-source-tabs">
+                        <button type="button" class="vst-btn active" data-target="vid-upload-panel">上传视频</button>
+                        <button type="button" class="vst-btn" data-target="vid-link-panel">视频链接</button>
+                        <button type="button" class="vst-btn" data-target="vid-embed-panel">嵌入代码</button>
+                    </div>
+                    <!-- 上传视频 -->
+                    <div class="vs-panel active" id="vid-upload-panel">
+                        <div class="upload-zone" id="vidUploadZone">
+                            <div class="upload-zone-inner">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C8A45C" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                                <p class="upload-text">拖拽视频文件到此处，或 <span class="upload-browse">点击选择</span></p>
+                                <p class="upload-hint">支持 MP4 / WebM / MOV，建议 100MB 以内</p>
+                            </div>
+                            <input type="file" id="vidVideoFile" accept="video/*" hidden>
+                        </div>
+                        <div class="upload-preview" id="vidUploadPreview" style="display:none;">
+                            <div class="upload-preview-info">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8A45C" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                                <span id="vidUploadName">video.mp4</span>
+                                <span id="vidUploadSize" class="upload-size"></span>
+                                <button type="button" class="upload-remove" id="vidUploadRemove">&times;</button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 视频链接 -->
+                    <div class="vs-panel" id="vid-link-panel">
+                        <input type="text" id="vidUrl" placeholder="B站/YouTube/腾讯视频链接">
+                        <p class="form-hint">填写视频链接，用户点击后跳转观看</p>
+                    </div>
+                    <!-- 嵌入代码 -->
+                    <div class="vs-panel" id="vid-embed-panel">
+                        <textarea id="vidEmbedCode" rows="3" placeholder='粘贴 iframe 嵌入代码，例如：<iframe src="..." allowfullscreen></iframe>'></textarea>
+                        <p class="form-hint">优先使用嵌入代码。填写后视频将直接在主页卡片中播放，无需跳转</p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="toggle-wrap">
+                        <label class="toggle">
+                            <input type="checkbox" id="vidPublished" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="toggle-label">发布状态</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn" onclick="closeModal('videoModal')">取消</button>
+                <button class="admin-btn primary" onclick="saveVideo()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button class="modal-close" onclick="closeModal('passwordModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="newPassword" placeholder="输入新密码">
+                </div>
+                <div class="form-group">
+                    <label>确认密码</label>
+                    <input type="password" id="confirmPassword" placeholder="再次输入新密码">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="admin-btn" onclick="closeModal('passwordModal')">取消</button>
+                <button class="admin-btn primary" onclick="changePassword()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="config.js"></script>
+    <script src="data.js"></script>
+    <script src="video-store.js"></script>
+    <script src="supabase-adapter.js"></script>
+    <script src="zy-store.js"></script>
+    <script>
+        // ===== Init =====
+        if (zyStore.isAdmin()) {
+            showAdmin();
+        }
+
+        // ===== Login =====
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pwd = document.getElementById('loginPassword').value;
+            if (await zyStore.adminLogin(pwd)) {
+                showAdmin();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        });
+
+        function showAdmin() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('adminPage').style.display = 'block';
+            renderAll();
+        }
+
+        // ===== Tabs =====
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ===== Render Tables =====
+        async function renderAll() {
+            await renderArticleTable();
+            await renderVideoTable();
+            await renderCategoryTable();
+        }
+
+        async function renderArticleTable() {
+            const articles = await zyStore.getAllArticles();
+            const tbody = document.getElementById('articleTableBody');
+            if (articles.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无文章，点击「新建文章」开始创作</td></tr>';
+                return;
+            }
+            tbody.innerHTML = articles.map(a => `
+                <tr>
+                    <td class="table-title">${a.title}</td>
+                    <td>${a.category}</td>
+                    <td><span class="status-badge ${a.published ? 'published' : 'draft'}">${a.published ? '已发布' : '草稿'}</span></td>
+                    <td>${a.date}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn" onclick="editArticle('${a.id}')">编辑</button>
+                            <button class="action-btn" onclick="previewArticle('${a.id}')">预览</button>
+                            <button class="action-btn delete" onclick="deleteArticle('${a.id}')">删除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function renderVideoTable() {
+            const videos = await zyStore.getAllVideos();
+            const tbody = document.getElementById('videoTableBody');
+            if (videos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">暂无视频，点击「新建视频」添加</td></tr>';
+                return;
+            }
+            tbody.innerHTML = videos.map(v => `
+                <tr>
+                    <td class="table-title">${v.title}</td>
+                    <td>${v.category}</td>
+                    <td><span class="status-badge ${v.published ? 'published' : 'draft'}">${v.published ? '已发布' : '草稿'}</span></td>
+                    <td>${v.date}</td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="action-btn" onclick="editVideo('${v.id}')">编辑</button>
+                            <button class="action-btn delete" onclick="deleteVideo('${v.id}')">删除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function renderCategoryTable() {
+            const cats = await zyStore.getCategories();
+            const articles = await zyStore.getAllArticles();
+            const tbody = document.getElementById('categoryTableBody');
+            tbody.innerHTML = cats.map((c, i) => {
+                if (c === '全部') return '';
+                const count = articles.filter(a => a.category === c).length;
+                return `
+                    <tr>
+                        <td>${c}</td>
+                        <td>${count}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="action-btn" onclick="renameCategory(${i})">重命名</button>
+                                <button class="action-btn delete" onclick="deleteCategory(${i}, '${c}')">删除</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ===== Article CRUD =====
+        // 跟踪待上传的视频文件
+        let _artPendingFile = null;
+        let _vidPendingFile = null;
+
+        async function populateCategorySelect(selectId) {
+            const sel = document.getElementById(selectId);
+            const cats = (await zyStore.getCategories()).filter(c => c !== '全部');
+            sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+        }
+
+        async function openArticleEditor(article) {
+            await populateCategorySelect('artCategory');
+            document.getElementById('articleModalTitle').textContent = article ? '编辑文章' : '新建文章';
+            document.getElementById('artId').value = article ? article.id : '';
+            document.getElementById('artTitle').value = article ? article.title : '';
+            const cats = await zyStore.getCategories();
+            document.getElementById('artCategory').value = article ? article.category : (cats[1] || '');
+            document.getElementById('artDate').value = article ? article.date : new Date().toISOString().slice(0, 10);
+            document.getElementById('artDesc').value = article ? article.desc : '';
+            document.getElementById('artVideoUrl').value = article ? (article.videoUrl || '') : '';
+            document.getElementById('artVideoEmbedCode').value = article ? (article.videoEmbedCode || '') : '';
+            document.getElementById('artContent').innerHTML = article ? article.content : '<p>在这里开始写作...</p>';
+            document.getElementById('artPublished').checked = article ? article.published : true;
+            _artPendingFile = null;
+
+            document.getElementById('artUploadZone').style.display = '';
+            document.getElementById('artUploadPreview').style.display = 'none';
+            document.getElementById('artVideoFile').value = '';
+
+            const hasExistingVideo = article && (article.videoStorageKey || article.videoStoragePath);
+            if (hasExistingVideo) {
+                document.getElementById('artUploadZone').style.display = 'none';
+                document.getElementById('artUploadPreview').style.display = '';
+                document.getElementById('artUploadName').textContent = '已上传视频';
+                document.getElementById('artUploadSize').textContent = '';
+                switchSourceTab(document.querySelector('#articleModal .vst-btn[data-target="art-upload-panel"]'));
+            } else {
+                if (article && article.videoEmbedCode) {
+                    switchSourceTab(document.querySelector('#articleModal .vst-btn[data-target="art-embed-panel"]'));
+                } else if (article && article.videoUrl) {
+                    switchSourceTab(document.querySelector('#articleModal .vst-btn[data-target="art-link-panel"]'));
+                } else {
+                    switchSourceTab(document.querySelector('#articleModal .vst-btn[data-target="art-upload-panel"]'));
+                }
+            }
+            openModal('articleModal');
+        }
+
+        async function editArticle(id) {
+            const article = await zyStore.getArticleById(id);
+            if (article) await openArticleEditor(article);
+        }
+
+        async function saveArticle() {
+            const title = document.getElementById('artTitle').value.trim();
+            if (!title) { showToast('请输入文章标题', 'error'); return; }
+
+            let id = document.getElementById('artId').value;
+            if (!id) id = 'art_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+            let videoStorageKey = '';
+            let videoStoragePath = '';
+            if (_artPendingFile) {
+                try {
+                    const result = await zyStore.uploadVideoFile(id, _artPendingFile);
+                    videoStorageKey = result.storageKey || '';
+                    videoStoragePath = result.storagePath || '';
+                    showToast('视频上传成功', 'success');
+                } catch (e) {
+                    showToast('视频上传失败：' + e.message, 'error');
+                    return;
+                }
+            } else {
+                const existing = document.getElementById('artId').value ? await zyStore.getArticleById(document.getElementById('artId').value) : null;
+                if (existing) {
+                    const uploadPreviewVisible = document.getElementById('artUploadPreview').style.display !== 'none';
+                    videoStorageKey = uploadPreviewVisible ? (existing.videoStorageKey || '') : '';
+                    videoStoragePath = uploadPreviewVisible ? (existing.videoStoragePath || '') : '';
+                }
+            }
+
+            const article = {
+                id, title,
+                category: document.getElementById('artCategory').value,
+                date: document.getElementById('artDate').value || new Date().toISOString().slice(0, 10),
+                desc: document.getElementById('artDesc').value.trim(),
+                videoUrl: document.getElementById('artVideoUrl').value.trim(),
+                videoEmbedCode: document.getElementById('artVideoEmbedCode').value.trim(),
+                videoStorageKey, videoStoragePath,
+                content: document.getElementById('artContent').innerHTML,
+                published: document.getElementById('artPublished').checked
+            };
+
+            await zyStore.saveArticle(article);
+            _artPendingFile = null;
+            closeModal('articleModal');
+            await renderAll();
+            showToast('文章已保存', 'success');
+        }
+
+        async function deleteArticle(id) {
+            if (!confirm('确定删除此文章？删除后不可恢复。')) return;
+            const article = await zyStore.getArticleById(id);
+            if (article) await zyStore.deleteVideoFile(article);
+            await zyStore.deleteArticle(id);
+            await renderAll();
+            showToast('文章已删除', 'success');
+        }
+
+        function previewArticle(id) {
+            window.open('article.html?id=' + id, '_blank');
+        }
+
+        // ===== Video CRUD =====
+        async function openVideoEditor(video) {
+            await populateCategorySelect('vidCategory');
+            document.getElementById('videoModalTitle').textContent = video ? '编辑视频' : '新建视频';
+            document.getElementById('vidId').value = video ? video.id : '';
+            document.getElementById('vidTitle').value = video ? video.title : '';
+            const cats = await zyStore.getCategories();
+            document.getElementById('vidCategory').value = video ? video.category : (cats[1] || '');
+            document.getElementById('vidDate').value = video ? video.date : new Date().toISOString().slice(0, 10);
+            document.getElementById('vidDesc').value = video ? video.desc : '';
+            document.getElementById('vidUrl').value = video ? video.url : '';
+            document.getElementById('vidEmbedCode').value = video ? (video.embedCode || '') : '';
+            document.getElementById('vidPublished').checked = video ? video.published : true;
+            _vidPendingFile = null;
+
+            document.getElementById('vidUploadZone').style.display = '';
+            document.getElementById('vidUploadPreview').style.display = 'none';
+            document.getElementById('vidVideoFile').value = '';
+
+            const hasExistingVideo = video && (video.storageKey || video.storagePath);
+            if (hasExistingVideo) {
+                document.getElementById('vidUploadZone').style.display = 'none';
+                document.getElementById('vidUploadPreview').style.display = '';
+                document.getElementById('vidUploadName').textContent = '已上传视频';
+                document.getElementById('vidUploadSize').textContent = '';
+                switchSourceTab(document.querySelector('#videoModal .vst-btn[data-target="vid-upload-panel"]'));
+            } else {
+                if (video && video.embedCode) {
+                    switchSourceTab(document.querySelector('#videoModal .vst-btn[data-target="vid-embed-panel"]'));
+                } else if (video && video.url) {
+                    switchSourceTab(document.querySelector('#videoModal .vst-btn[data-target="vid-link-panel"]'));
+                } else {
+                    switchSourceTab(document.querySelector('#videoModal .vst-btn[data-target="vid-upload-panel"]'));
+                }
+            }
+            openModal('videoModal');
+        }
+
+        async function editVideo(id) {
+            const video = await zyStore.getVideoById(id);
+            if (video) await openVideoEditor(video);
+        }
+
+        async function saveVideo() {
+            const title = document.getElementById('vidTitle').value.trim();
+            if (!title) { showToast('请输入视频标题', 'error'); return; }
+
+            let id = document.getElementById('vidId').value;
+            if (!id) id = 'vid_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+            let storageKey = '';
+            let storagePath = '';
+            if (_vidPendingFile) {
+                try {
+                    const result = await zyStore.uploadVideoFile(id, _vidPendingFile);
+                    storageKey = result.storageKey || '';
+                    storagePath = result.storagePath || '';
+                    showToast('视频上传成功', 'success');
+                } catch (e) {
+                    showToast('视频上传失败：' + e.message, 'error');
+                    return;
+                }
+            } else {
+                const existing = document.getElementById('vidId').value ? await zyStore.getVideoById(document.getElementById('vidId').value) : null;
+                if (existing) {
+                    const uploadPreviewVisible = document.getElementById('vidUploadPreview').style.display !== 'none';
+                    storageKey = uploadPreviewVisible ? (existing.storageKey || '') : '';
+                    storagePath = uploadPreviewVisible ? (existing.storagePath || '') : '';
+                }
+            }
+
+            const video = {
+                id, title,
+                category: document.getElementById('vidCategory').value,
+                date: document.getElementById('vidDate').value || new Date().toISOString().slice(0, 10),
+                desc: document.getElementById('vidDesc').value.trim(),
+                url: document.getElementById('vidUrl').value.trim(),
+                embedCode: document.getElementById('vidEmbedCode').value.trim(),
+                storageKey, storagePath,
+                published: document.getElementById('vidPublished').checked
+            };
+
+            await zyStore.saveVideo(video);
+            _vidPendingFile = null;
+            closeModal('videoModal');
+            await renderAll();
+            showToast('视频已保存', 'success');
+        }
+
+        async function deleteVideo(id) {
+            if (!confirm('确定删除此视频？')) return;
+            const video = await zyStore.getVideoById(id);
+            if (video) await zyStore.deleteVideoFile(video);
+            await zyStore.deleteVideo(id);
+            await renderAll();
+            showToast('视频已删除', 'success');
+        }
+
+        // ===== Categories =====
+        async function addCategory() {
+            const name = prompt('输入新分类名称：');
+            if (!name || !name.trim()) return;
+            const cats = await zyStore.getCategories();
+            if (cats.includes(name.trim())) { showToast('分类已存在', 'error'); return; }
+            cats.push(name.trim());
+            await zyStore.saveCategories(cats);
+            await renderAll();
+            showToast('分类已添加', 'success');
+        }
+
+        async function renameCategory(index) {
+            const cats = await zyStore.getCategories();
+            const oldName = cats[index];
+            const newName = prompt('重命名分类：', oldName);
+            if (!newName || !newName.trim() || newName.trim() === oldName) return;
+            cats[index] = newName.trim();
+            await zyStore.saveCategories(cats);
+            const articles = await zyStore.getAllArticles();
+            for (const a of articles) {
+                if (a.category === oldName) { a.category = newName.trim(); await zyStore.saveArticle(a); }
+            }
+            const videos = await zyStore.getAllVideos();
+            for (const v of videos) {
+                if (v.category === oldName) { v.category = newName.trim(); await zyStore.saveVideo(v); }
+            }
+            await renderAll();
+            showToast('分类已重命名', 'success');
+        }
+
+        async function deleteCategory(index, name) {
+            const articles = await zyStore.getAllArticles();
+            const videos = await zyStore.getAllVideos();
+            const count = articles.filter(a => a.category === name).length +
+                          videos.filter(v => v.category === name).length;
+            if (count > 0) {
+                if (!confirm(`分类「${name}」下有 ${count} 条内容，删除后这些内容的分类将变为无效。确定删除？`)) return;
+            }
+            const cats = await zyStore.getCategories();
+            cats.splice(index, 1);
+            await zyStore.saveCategories(cats);
+            await renderAll();
+            showToast('分类已删除', 'success');
+        }
+
+        // ===== Rich Text Editor =====
+        document.getElementById('rteToolbar').addEventListener('click', (e) => {
+            const btn = e.target.closest('.rte-btn');
+            if (!btn) return;
+            e.preventDefault();
+            const cmd = btn.dataset.cmd;
+            const val = btn.dataset.val || null;
+            if (cmd === 'formatBlock') {
+                document.execCommand(cmd, false, val);
+            } else {
+                document.execCommand(cmd, false, null);
+            }
+            document.getElementById('artContent').focus();
+        });
+
+        // ===== Modal Helpers =====
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+        // Close modals on overlay click
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.remove('active');
+            });
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal-overlay.active').forEach(m => m.classList.remove('active'));
+            }
+        });
+
+        // ===== Password =====
+        function showPasswordModal() { openModal('passwordModal'); }
+
+        async function changePassword() {
+            const np = document.getElementById('newPassword').value;
+            const cp = document.getElementById('confirmPassword').value;
+            if (!np) { showToast('请输入新密码', 'error'); return; }
+            if (np !== cp) { showToast('两次密码不一致', 'error'); return; }
+            await zyStore.changeAdminPassword(np);
+            closeModal('passwordModal');
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            showToast('密码已修改', 'success');
+        }
+
+        // ===== Toast =====
+        function showToast(msg, type) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.className = 'toast ' + type;
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        // ===== Format File Size =====
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // ===== Video Source Tab Switching =====
+        function switchSourceTab(btn) {
+            if (!btn) return;
+            const panel = btn.dataset.target;
+            // Find siblings
+            const tabs = btn.parentElement;
+            tabs.querySelectorAll('.vst-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Show target panel, hide siblings
+            const container = tabs.parentElement;
+            container.querySelectorAll('.vs-panel').forEach(p => p.classList.remove('active'));
+            const target = document.getElementById(panel);
+            if (target) target.classList.add('active');
+        }
+
+        document.querySelectorAll('.vst-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchSourceTab(btn));
+        });
+
+        // ===== Upload Zone: Drag & Drop + Click =====
+        function setupUploadZone(zoneId, inputId, previewId, nameId, sizeId, removeId, getFileRef) {
+            const zone = document.getElementById(zoneId);
+            const input = document.getElementById(inputId);
+            const preview = document.getElementById(previewId);
+
+            // Click to browse
+            zone.addEventListener('click', (e) => {
+                if (e.target.closest('.upload-browse') || e.target === zone || e.target.closest('.upload-zone-inner')) {
+                    input.click();
+                }
+            });
+
+            input.addEventListener('change', () => {
+                if (input.files.length > 0) handleFile(input.files[0]);
+            });
+
+            // Drag events
+            zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+            zone.addEventListener('dragleave', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); });
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const files = e.dataTransfer.files;
+                if (files.length > 0 && files[0].type.startsWith('video/')) {
+                    handleFile(files[0]);
+                } else {
+                    showToast('请拖入视频文件', 'error');
+                }
+            });
+
+            function handleFile(file) {
+                if (!file.type.startsWith('video/')) {
+                    showToast('请选择视频文件', 'error');
+                    return;
+                }
+                if (file.size > 500 * 1024 * 1024) {
+                    showToast('文件过大，建议 100MB 以内', 'error');
+                    return;
+                }
+                getFileRef(file);
+                document.getElementById(nameId).textContent = file.name;
+                document.getElementById(sizeId).textContent = formatFileSize(file.size);
+                zone.style.display = 'none';
+                preview.style.display = '';
+            }
+
+            // Remove button
+            document.getElementById(removeId).addEventListener('click', (e) => {
+                e.stopPropagation();
+                getFileRef(null);
+                zone.style.display = '';
+                preview.style.display = 'none';
+                input.value = '';
+            });
+        }
+
+        setupUploadZone('artUploadZone', 'artVideoFile', 'artUploadPreview', 'artUploadName', 'artUploadSize', 'artUploadRemove',
+            (file) => { _artPendingFile = file; });
+
+        setupUploadZone('vidUploadZone', 'vidVideoFile', 'vidUploadPreview', 'vidUploadName', 'vidUploadSize', 'vidUploadRemove',
+            (file) => { _vidPendingFile = file; });
+    </script>
+</body>
+</html>
