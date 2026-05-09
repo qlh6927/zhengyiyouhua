@@ -1,271 +1,190 @@
-#!/usr/bin/env python3
-"""
-郑医有话 — 轻量 REST API 服务
-基于 Python3 + SQLite，无需安装额外依赖
-"""
-import json
-import sqlite3
-import hashlib
-import os
-from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs
+import json,sqlite3,hashlib
+from http.server import HTTPServer,BaseHTTPRequestHandler
+from urllib.parse import urlparse,parse_qs
 
-DB_PATH = '/var/www/zhengyiyouhua/zhengyiyouhua.db'
-PORT = 8000
+DB='/var/www/zhengyiyouhua/zhengyiyouhua.db'
 
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+def db():
+    c=sqlite3.connect(DB);c.row_factory=sqlite3.Row;return c
 
-def dict_from_row(row):
-    return dict(row) if row else None
+def sha256(s):
+    return hashlib.sha256(s.encode('utf-8')).hexdigest()
 
-def dicts_from_rows(rows):
-    return [dict(r) for r in rows]
-
-class APIHandler(BaseHTTPRequestHandler):
+class H(BaseHTTPRequestHandler):
     def _cors(self):
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
-        self.send_header('Content-Type', 'application/json; charset=utf-8')
+        self.send_header('Access-Control-Allow-Origin','*')
+        self.send_header('Access-Control-Allow-Methods','GET,POST,PATCH,DELETE,OPTIONS')
+        self.send_header('Access-Control-Allow-Headers','Content-Type')
+        self.send_header('Content-Type','application/json; charset=utf-8')
 
-    def _json_response(self, data, status=200):
-        self.send_response(status)
-        self._cors()
-        self.end_headers()
-        self.wfile.write(json.dumps(data, ensure_ascii=False).encode('utf-8'))
+    def _j(self,d,s=200):
+        self.send_response(s);self._cors();self.end_headers()
+        self.wfile.write(json.dumps(d,ensure_ascii=False).encode('utf-8'))
 
-    def _read_body(self):
-        length = int(self.headers.get('Content-Length', 0))
-        if length == 0:
-            return {}
-        return json.loads(self.rfile.read(length))
+    def _b(self):
+        l=int(self.headers.get('Content-Length',0))
+        return json.loads(self.rfile.read(l)) if l else {}
 
     def do_OPTIONS(self):
-        self.send_response(204)
-        self._cors()
-        self.end_headers()
+        self.send_response(204);self._cors();self.end_headers()
 
     def do_GET(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-        params = parse_qs(parsed.query)
-
-        db = get_db()
-
+        p=urlparse(self.path);pa=p.path;q=parse_qs(p.query);c=db()
         try:
-            # ===== 文章 =====
-            if path == '/api/articles':
-                if 'id' in params:
-                    row = db.execute('SELECT * FROM articles WHERE id=?', (params['id'][0],)).fetchone()
-                    self._json_response(dict_from_row(row) if row else None)
+            if pa=='/api/articles':
+                if 'id' in q:
+                    r=c.execute('SELECT * FROM articles WHERE id=?',(q['id'][0],)).fetchone()
+                    self._j(dict(r) if r else None)
                 else:
-                    sql = 'SELECT * FROM articles WHERE published=1'
-                    args = []
-                    if 'category' in params and params['category'][0] != '全部':
-                        sql += ' AND category=?'
-                        args.append(params['category'][0])
-                    if 'keyword' in params:
-                        kw = '%' + params['keyword'][0] + '%'
-                        sql += ' AND (title LIKE ? OR description LIKE ? OR content LIKE ?)'
-                        args.extend([kw, kw, kw])
-                    sql += ' ORDER BY date DESC'
-                    rows = db.execute(sql, args).fetchall()
-                    self._json_response(dicts_from_rows(rows))
+                    s='SELECT * FROM articles WHERE published=1';a=[]
+                    if 'category' in q and q['category'][0]!='全部':s+=' AND category=?';a.append(q['category'][0])
+                    if 'keyword' in q:
+                        k='%'+q['keyword'][0]+'%'
+                        s+=' AND (title LIKE ? OR description LIKE ? OR content LIKE ?)';a+=[k,k,k]
+                    self._j([dict(x) for x in c.execute(s+' ORDER BY date DESC',a).fetchall()])
 
-            elif path == '/api/articles/all':
-                rows = db.execute('SELECT * FROM articles ORDER BY date DESC').fetchall()
-                self._json_response(dicts_from_rows(rows))
+            elif pa=='/api/articles/all':
+                self._j([dict(x) for x in c.execute('SELECT * FROM articles ORDER BY date DESC').fetchall()])
 
-            # ===== 视频 =====
-            elif path == '/api/videos':
-                if 'id' in params:
-                    row = db.execute('SELECT * FROM videos WHERE id=?', (params['id'][0],)).fetchone()
-                    self._json_response(dict_from_row(row) if row else None)
+            elif pa=='/api/videos':
+                if 'id' in q:
+                    r=c.execute('SELECT * FROM videos WHERE id=?',(q['id'][0],)).fetchone()
+                    self._j(dict(r) if r else None)
                 else:
-                    sql = 'SELECT * FROM videos WHERE published=1'
-                    args = []
-                    if 'category' in params and params['category'][0] != '全部':
-                        sql += ' AND category=?'
-                        args.append(params['category'][0])
-                    if 'keyword' in params:
-                        kw = '%' + params['keyword'][0] + '%'
-                        sql += ' AND (title LIKE ? OR description LIKE ?)'
-                        args.extend([kw, kw])
-                    sql += ' ORDER BY date DESC'
-                    rows = db.execute(sql, args).fetchall()
-                    self._json_response(dicts_from_rows(rows))
+                    s='SELECT * FROM videos WHERE published=1';a=[]
+                    if 'category' in q and q['category'][0]!='全部':s+=' AND category=?';a.append(q['category'][0])
+                    if 'keyword' in q:
+                        k='%'+q['keyword'][0]+'%'
+                        s+=' AND (title LIKE ? OR description LIKE ?)';a+=[k,k]
+                    self._j([dict(x) for x in c.execute(s+' ORDER BY date DESC',a).fetchall()])
 
-            elif path == '/api/videos/all':
-                rows = db.execute('SELECT * FROM videos ORDER BY date DESC').fetchall()
-                self._json_response(dicts_from_rows(rows))
+            elif pa=='/api/videos/all':
+                self._j([dict(x) for x in c.execute('SELECT * FROM videos ORDER BY date DESC').fetchall()])
 
-            # ===== 分类 =====
-            elif path == '/api/categories':
-                rows = db.execute('SELECT * FROM categories ORDER BY sort_order ASC').fetchall()
-                cats = ['全部'] + [r['name'] for r in rows]
-                self._json_response(cats)
+            elif pa=='/api/categories':
+                rows=c.execute('SELECT * FROM categories ORDER BY sort_order').fetchall()
+                self._j(['全部']+[r['name'] for r in rows])
 
-            # ===== 管理员 =====
-            elif path == '/api/admin/config':
-                if 'key' in params:
-                    row = db.execute('SELECT * FROM admin_config WHERE key=?', (params['key'][0],)).fetchone()
-                    self._json_response([dict_from_row(row)] if row else [])
+            elif pa=='/api/admin/config':
+                if 'key' in q:
+                    rows=c.execute('SELECT * FROM admin_config WHERE key=?',(q['key'][0],)).fetchall()
+                    self._j([dict(x) for x in rows])
                 else:
-                    rows = db.execute('SELECT * FROM admin_config').fetchall()
-                    self._json_response(dicts_from_rows(rows))
+                    self._j([dict(x) for x in c.execute('SELECT * FROM admin_config').fetchall()])
 
-            # ===== 搜索 =====
-            elif path == '/api/search':
-                kw = params.get('keyword', [''])[0]
-                if not kw:
-                    self._json_response({'articles': [], 'videos': []})
-                    return
-                like = '%' + kw + '%'
-                articles = dicts_from_rows(db.execute(
-                    'SELECT * FROM articles WHERE published=1 AND (title LIKE ? OR description LIKE ? OR content LIKE ?) ORDER BY date DESC',
-                    (like, like, like)).fetchall())
-                videos = dicts_from_rows(db.execute(
-                    'SELECT * FROM videos WHERE published=1 AND (title LIKE ? OR description LIKE ?) ORDER BY date DESC',
-                    (like, like)).fetchall())
-                self._json_response({'articles': articles, 'videos': videos})
+            elif pa=='/api/search':
+                k=q.get('keyword',[''])[0]
+                if not k:self._j({'articles':[],'videos':[]});return
+                lk='%'+k+'%'
+                arts=[dict(x) for x in c.execute('SELECT * FROM articles WHERE published=1 AND (title LIKE ? OR description LIKE ? OR content LIKE ?) ORDER BY date DESC',(lk,lk,lk)).fetchall()]
+                vids=[dict(x) for x in c.execute('SELECT * FROM videos WHERE published=1 AND (title LIKE ? OR description LIKE ?) ORDER BY date DESC',(lk,lk)).fetchall()]
+                self._j({'articles':arts,'videos':vids})
+
+            elif pa=='/api/admin/login':
+                pwd=q.get('password',[''])[0]
+                stored=c.execute("SELECT value FROM admin_config WHERE key='password'").fetchone()
+                if stored and stored['value']==sha256(pwd):
+                    self._j({'ok':True})
+                else:
+                    self._j({'ok':False},401)
 
             else:
-                self._json_response({'error': 'Not found'}, 404)
-
+                self._j({'error':'Not found'},404)
         except Exception as e:
-            self._json_response({'error': str(e)}, 500)
+            self._j({'error':str(e)},500)
         finally:
-            db.close()
+            c.close()
 
     def do_POST(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-        body = self._read_body()
-        db = get_db()
-
+        pa=urlparse(self.path).path;b=self._b();c=db()
         try:
-            if path == '/api/articles':
-                db.execute(
-                    'INSERT OR REPLACE INTO articles (id,title,description,category,content,video_url,video_embed_code,video_storage_key,video_storage_path,date,published) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-                    (body.get('id'), body.get('title'), body.get('desc',''), body.get('category',''),
-                     body.get('content',''), body.get('videoUrl',''), body.get('videoEmbedCode',''),
-                     body.get('videoStorageKey',''), body.get('videoStoragePath',''),
-                     body.get('date',''), 1 if body.get('published', True) else 0))
-                db.commit()
-                self._json_response({'ok': True})
+            if pa=='/api/articles':
+                c.execute('INSERT OR REPLACE INTO articles(id,title,description,category,content,video_url,video_embed_code,video_storage_key,video_storage_path,date,published) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+                    (b.get('id'),b.get('title'),b.get('desc',''),b.get('category',''),b.get('content',''),
+                     b.get('videoUrl',''),b.get('videoEmbedCode',''),b.get('videoStorageKey',''),
+                     b.get('videoStoragePath',''),b.get('date',''),1 if b.get('published',True) else 0))
+                c.commit();self._j({'ok':True})
 
-            elif path == '/api/videos':
-                db.execute(
-                    'INSERT OR REPLACE INTO videos (id,title,description,category,url,embed_code,storage_key,storage_path,date,published) VALUES (?,?,?,?,?,?,?,?,?,?)',
-                    (body.get('id'), body.get('title'), body.get('desc',''), body.get('category',''),
-                     body.get('url',''), body.get('embedCode',''), body.get('storageKey',''),
-                     body.get('storagePath',''), body.get('date',''), 1 if body.get('published', True) else 0))
-                db.commit()
-                self._json_response({'ok': True})
+            elif pa=='/api/videos':
+                c.execute('INSERT OR REPLACE INTO videos(id,title,description,category,url,embed_code,storage_key,storage_path,date,published) VALUES(?,?,?,?,?,?,?,?,?,?)',
+                    (b.get('id'),b.get('title'),b.get('desc',''),b.get('category',''),b.get('url',''),
+                     b.get('embedCode',''),b.get('storageKey',''),b.get('storagePath',''),
+                     b.get('date',''),1 if b.get('published',True) else 0))
+                c.commit();self._j({'ok':True})
 
-            elif path == '/api/categories':
-                cats = body if isinstance(body, list) else body.get('categories', [])
-                db.execute('DELETE FROM categories')
-                for i, name in enumerate(cats):
-                    if name != '全部':
-                        db.execute('INSERT INTO categories (name, sort_order) VALUES (?, ?)', (name, i))
-                db.commit()
-                self._json_response({'ok': True})
+            elif pa=='/api/categories':
+                c.execute('DELETE FROM categories')
+                cats=b if isinstance(b,list) else b.get('categories',[])
+                for i,n in enumerate(cats):
+                    if n!='全部':c.execute('INSERT INTO categories(name,sort_order) VALUES(?,?)',(n,i))
+                c.commit();self._j({'ok':True})
 
             else:
-                self._json_response({'error': 'Not found'}, 404)
-
+                self._j({'error':'Not found'},404)
         except Exception as e:
-            self._json_response({'error': str(e)}, 500)
+            self._j({'error':str(e)},500)
         finally:
-            db.close()
+            c.close()
 
     def do_PATCH(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-        params = parse_qs(parsed.query)
-        body = self._read_body()
-        db = get_db()
-
+        pa=urlparse(self.path).path;q=parse_qs(urlparse(self.path).query);b=self._b();c=db()
         try:
-            if path == '/api/articles' and 'id' in params:
-                fields = []
-                args = []
-                for key, col in [('title','title'),('desc','description'),('category','category'),('content','content'),('videoUrl','video_url'),('videoEmbedCode','video_embed_code'),('videoStorageKey','video_storage_key'),('videoStoragePath','video_storage_path'),('date','date'),('published','published')]:
-                    if key in body:
-                        fields.append(f'{col}=?')
-                        args.append(body[key])
-                if 'published' in body:
-                    args[-1] = 1 if body['published'] else 0
-                args.append(params['id'][0])
-                db.execute(f'UPDATE articles SET {", ".join(fields)} WHERE id=?', args)
-                db.commit()
-                self._json_response({'ok': True})
+            if pa=='/api/articles' and 'id' in q:
+                f=[];a=[]
+                for k,col in [('title','title'),('desc','description'),('category','category'),('content','content'),('videoUrl','video_url'),('videoEmbedCode','video_embed_code'),('videoStorageKey','video_storage_key'),('videoStoragePath','video_storage_path'),('date','date'),('published','published')]:
+                    if k in b:
+                        f.append(col+'=?')
+                        val=b[k]
+                        if k=='published':val=1 if val else 0
+                        a.append(val)
+                a.append(q['id'][0])
+                c.execute('UPDATE articles SET '+','.join(f)+' WHERE id=?',a);c.commit();self._j({'ok':True})
 
-            elif path == '/api/videos' and 'id' in params:
-                fields = []
-                args = []
-                for key, col in [('title','title'),('desc','description'),('category','category'),('url','url'),('embedCode','embed_code'),('storageKey','storage_key'),('storagePath','storage_path'),('date','date'),('published','published')]:
-                    if key in body:
-                        fields.append(f'{col}=?')
-                        args.append(body[key])
-                if 'published' in body:
-                    args[-1] = 1 if body['published'] else 0
-                args.append(params['id'][0])
-                db.execute(f'UPDATE videos SET {", ".join(fields)} WHERE id=?', args)
-                db.commit()
-                self._json_response({'ok': True})
+            elif pa=='/api/videos' and 'id' in q:
+                f=[];a=[]
+                for k,col in [('title','title'),('desc','description'),('category','category'),('url','url'),('embedCode','embed_code'),('storageKey','storage_key'),('storagePath','storage_path'),('date','date'),('published','published')]:
+                    if k in b:
+                        f.append(col+'=?')
+                        val=b[k]
+                        if k=='published':val=1 if val else 0
+                        a.append(val)
+                a.append(q['id'][0])
+                c.execute('UPDATE videos SET '+','.join(f)+' WHERE id=?',a);c.commit();self._j({'ok':True})
 
-            elif path == '/api/admin/config' and 'key' in params:
-                db.execute('UPDATE admin_config SET value=? WHERE key=?', (body.get('value',''), params['key'][0]))
-                db.commit()
-                self._json_response({'ok': True})
+            elif pa=='/api/admin/config' and 'key' in q:
+                val=b.get('value','')
+                # If it looks like a plaintext password (not a hash), hash it
+                if len(val)!=64 or not all(c in '0123456789abcdef' for c in val):
+                    val=sha256(val)
+                c.execute('UPDATE admin_config SET value=? WHERE key=?',(val,q['key'][0]))
+                c.commit();self._j({'ok':True})
 
             else:
-                self._json_response({'error': 'Not found'}, 404)
-
+                self._j({'error':'Not found'},404)
         except Exception as e:
-            self._json_response({'error': str(e)}, 500)
+            self._j({'error':str(e)},500)
         finally:
-            db.close()
+            c.close()
 
     def do_DELETE(self):
-        parsed = urlparse(self.path)
-        path = parsed.path
-        params = parse_qs(parsed.query)
-        db = get_db()
-
+        pa=urlparse(self.path).path;q=parse_qs(urlparse(self.path).query);c=db()
         try:
-            if path == '/api/articles' and 'id' in params:
-                db.execute('DELETE FROM articles WHERE id=?', (params['id'][0],))
-                db.commit()
-                self._json_response({'ok': True})
-
-            elif path == '/api/videos' and 'id' in params:
-                db.execute('DELETE FROM videos WHERE id=?', (params['id'][0],))
-                db.commit()
-                self._json_response({'ok': True})
-
-            elif path == '/api/categories':
-                db.execute('DELETE FROM categories')
-                db.commit()
-                self._json_response({'ok': True})
-
+            if pa=='/api/articles' and 'id' in q:
+                c.execute('DELETE FROM articles WHERE id=?',(q['id'][0],));c.commit();self._j({'ok':True})
+            elif pa=='/api/videos' and 'id' in q:
+                c.execute('DELETE FROM videos WHERE id=?',(q['id'][0],));c.commit();self._j({'ok':True})
+            elif pa=='/api/categories':
+                c.execute('DELETE FROM categories');c.commit();self._j({'ok':True})
             else:
-                self._json_response({'error': 'Not found'}, 404)
-
+                self._j({'error':'Not found'},404)
         except Exception as e:
-            self._json_response({'error': str(e)}, 500)
+            self._j({'error':str(e)},500)
         finally:
-            db.close()
+            c.close()
 
-    def log_message(self, format, *args):
-        pass  # 静默日志
+    def log_message(self,*a):pass
 
-if __name__ == '__main__':
-    server = HTTPServer(('127.0.0.1', PORT), APIHandler)
-    print(f'API server running on port {PORT}')
-    server.serve_forever()
+if __name__=='__main__':
+    s=HTTPServer(('127.0.0.1',8000),H)
+    print('API on :8000')
+    s.serve_forever()
